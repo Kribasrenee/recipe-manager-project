@@ -10,4 +10,9 @@ app.use(express.json());
 app.use("/health", (req, res) => {
     res.send("Server is running healthy 💊")
 });
+// CRUD API routes
+app.use('/api/recipes', require('./routes/recipeRoutes'));
+app.use('/api/categories', require('./routes/recipeCategoryRoutes'));
+app.use('/api/steps', require('./routes/stepsRoutes'));
+app.use('/api/users', require('./routes/userRoutes'));
 module.exports = app;
