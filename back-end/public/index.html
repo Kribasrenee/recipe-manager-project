@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>recipe-api</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400;500&family=Lora:ital@0;1&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --cream:    #f7f3ec;
+      --parchment:#ede8dc;
+      --ink:      #1c1510;
+      --spice:    #b34a1a;
+      --herb:     #3a6344;
+      --gold:     #c9913a;
+      --muted:    #7a6f63;
+      --card-bg:  #ffffff;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--cream);
+      color: var(--ink);
+      font-family: 'Lora', Georgia, serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Noise texture overlay ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.2rem 3rem;
+      background: rgba(247,243,236,0.82);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(28,21,16,0.08);
+    }
+
+    .nav-logo {
+      font-family: 'DM Mono', monospace;
+      font-size: 1rem;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+    }
+
+    .nav-logo span { color: var(--spice); }
+
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 2.5rem;
+    }
+
+    nav ul a {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 400;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    nav ul a:hover { color: var(--spice); }
+
+    .nav-cta {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--cream);
+      background: var(--spice);
+      border: none;
+      padding: 0.55rem 1.3rem;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s;
+    }
+
+    .nav-cta:hover { background: var(--ink); transform: translateY(-1px); }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 8rem 2rem 4rem;
+      z-index: 1;
+    }
+
+    .hero-tag {
+      display: inline-block;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--herb);
+      background: rgba(58,99,68,0.1);
+      border: 1px solid rgba(58,99,68,0.25);
+      padding: 0.35rem 0.9rem;
+      border-radius: 2px;
+      margin-bottom: 2rem;
+      opacity: 0;
+      animation: fadeUp 0.7s 0.2s forwards;
+    }
+
+    .hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(3.5rem, 9vw, 8rem);
+      font-weight: 700;
+      line-height: 0.92;
+      letter-spacing: -0.02em;
+      max-width: 900px;
+      margin: 0 auto 1.5rem;
+      opacity: 0;
+      animation: fadeUp 0.8s 0.35s forwards;
+    }
+
+    .hero h1 em {
+      font-style: italic;
+      color: var(--spice);
+    }
+
+    .hero-sub {
+      font-size: 1.1rem;
+      color: var(--muted);
+      max-width: 480px;
+      margin: 0 auto 2.8rem;
+      line-height: 1.7;
+      opacity: 0;
+      animation: fadeUp 0.8s 0.5s forwards;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      opacity: 0;
+      animation: fadeUp 0.8s 0.65s forwards;
+    }
+
+    .btn-primary {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--cream);
+      background: var(--ink);
+      border: none;
+      padding: 0.85rem 2rem;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+    }
+
+    .btn-primary:hover {
+      background: var(--spice);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(179,74,26,0.25);
+    }
+
+    .btn-outline {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 400;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--ink);
+      background: transparent;
+      border: 1.5px solid rgba(28,21,16,0.25);
+      padding: 0.85rem 2rem;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, transform 0.15s;
+    }
+
+    .btn-outline:hover {
+      border-color: var(--ink);
+      background: rgba(28,21,16,0.04);
+      transform: translateY(-2px);
+    }
+
+    /* ── Floating herb decoration ── */
+    .herb-float {
+      position: absolute;
+      font-size: 6rem;
+      opacity: 0.06;
+      pointer-events: none;
+      user-select: none;
+      animation: drift 8s ease-in-out infinite;
+    }
+
+    .herb-float:nth-child(1) { top: 12%; left: 5%;  font-size: 8rem; animation-delay: 0s; }
+    .herb-float:nth-child(2) { top: 60%; right: 4%; font-size: 7rem; animation-delay: 2s; }
+    .herb-float:nth-child(3) { bottom: 15%; left: 12%; font-size: 5rem; animation-delay: 4s; }
+
+    @keyframes drift {
+      0%, 100% { transform: translateY(0) rotate(-5deg); }
+      50%       { transform: translateY(-18px) rotate(5deg); }
+    }
+
+    /* ── CODE PREVIEW ── */
+    .code-strip {
+      margin: 0 auto 6rem;
+      max-width: 760px;
+      padding: 0 2rem;
+      opacity: 0;
+      animation: fadeUp 0.9s 0.85s forwards;
+      position: relative;
+      z-index: 1;
+    }
+
+    .code-block {
+      background: var(--ink);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 24px 64px rgba(28,21,16,0.2);
+    }
+
+    .code-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.85rem 1.2rem;
+      background: rgba(255,255,255,0.06);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+
+    .dot { width: 11px; height: 11px; border-radius: 50%; }
+    .dot-r { background: #ff5f57; }
+    .dot-y { background: #febc2e; }
+    .dot-g { background: #28c840; }
+
+    .code-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.68rem;
+      color: rgba(255,255,255,0.3);
+      margin-left: auto;
+      letter-spacing: 0.06em;
+    }
+
+    .code-body {
+      padding: 1.6rem 1.8rem;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.82rem;
+      line-height: 1.85;
+      color: rgba(255,255,255,0.75);
+      text-align: left;
+      white-space: pre;
+      overflow-x: auto;
+    }
+
+    .c-key   { color: #c9913a; }
+    .c-str   { color: #8fc47c; }
+    .c-num   { color: #79b8ff; }
+    .c-grey  { color: rgba(255,255,255,0.3); }
+    .c-spice { color: #e07050; }
+
+    /* ── SECTION: FEATURES ── */
+    section { position: relative; z-index: 1; }
+
+    .section-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.6rem;
+    }
+
+    .features {
+      background: var(--parchment);
+      padding: 6rem 2rem;
+      border-top: 1px solid rgba(28,21,16,0.08);
+      border-bottom: 1px solid rgba(28,21,16,0.08);
+    }
+
+    .features-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .features-head {
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+
+    .features-head h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 700;
+      line-height: 1.15;
+    }
+
+    .features-head h2 em {
+      font-style: italic;
+      color: var(--spice);
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .feature-card {
+      background: var(--card-bg);
+      border: 1px solid rgba(28,21,16,0.08);
+      border-radius: 6px;
+      padding: 2rem 2rem 2.2rem;
+      transition: transform 0.25s, box-shadow 0.25s;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 16px 48px rgba(28,21,16,0.1);
+    }
+
+    .feature-icon {
+      font-size: 2rem;
+      margin-bottom: 1.1rem;
+      display: block;
+    }
+
+    .feature-card h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.6rem;
+    }
+
+    .feature-card p {
+      font-size: 0.92rem;
+      line-height: 1.7;
+      color: var(--muted);
+    }
+
+    /* ── ENDPOINTS ── */
+    .endpoints {
+      padding: 6rem 2rem;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .endpoints h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+      font-weight: 700;
+      margin-bottom: 2.5rem;
+      text-align: center;
+    }
+
+    .endpoint-list { display: flex; flex-direction: column; gap: 1rem; }
+
+    .endpoint-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: var(--card-bg);
+      border: 1px solid rgba(28,21,16,0.08);
+      border-radius: 6px;
+      padding: 1.1rem 1.5rem;
+      transition: box-shadow 0.2s, transform 0.2s;
+      cursor: default;
+    }
+
+    .endpoint-row:hover {
+      box-shadow: 0 8px 32px rgba(28,21,16,0.08);
+      transform: translateX(4px);
+    }
+
+    .method {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      padding: 0.3rem 0.65rem;
+      border-radius: 3px;
+      min-width: 52px;
+      text-align: center;
+    }
+
+    .get  { background: rgba(58,99,68,0.12);  color: var(--herb); }
+    .post { background: rgba(201,145,58,0.12); color: var(--gold); }
+    .del  { background: rgba(179,74,26,0.12);  color: var(--spice); }
+
+    .endpoint-path {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--ink);
+      flex: 1;
+    }
+
+    .endpoint-desc {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid rgba(28,21,16,0.1);
+      padding: 3rem 2rem;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .footer-logo {
+      font-family: 'DM Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+
+    .footer-logo span { color: var(--spice); }
+
+    footer p {
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(22px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      nav ul { display: none; }
+      nav { padding: 1rem 1.5rem; }
+      .endpoint-desc { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-logo">recipe<span>-api</span></div>
+    <ul>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#endpoints">Endpoints</a></li>
+      <li><a href="#docs">Docs</a></li>
+    </ul>
+    <button class="nav-cta">Get API Key</button>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <!-- floating herbs -->
+    <div class="herb-float">🌿</div>
+    <div class="herb-float">🍋</div>
+    <div class="herb-float">🫚</div>
+
+    <div>
+      <div class="hero-tag">✦ Culinary Data at your fingertips</div>
+      <h1>The <em>tastiest</em><br/>Recipe API</h1>
+      <p class="hero-sub">
+        A clean, fast, beautifully documented API for recipes, ingredients, nutrition, and cooking instructions — served fresh.
+      </p>
+      <div class="hero-actions">
+        <button class="btn-primary">Start Cooking →</button>
+        <button class="btn-outline">View Docs</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- CODE PREVIEW -->
+  <div class="code-strip">
+    <div class="code-block">
+      <div class="code-bar">
+        <div class="dot dot-r"></div>
+        <div class="dot dot-y"></div>
+        <div class="dot dot-g"></div>
+        <span class="code-label">recipe-api · example.js</span>
+      </div>
+      <div class="code-body"><span class="c-grey">// Fetch a recipe by ID</span>
+<span class="c-key">const</span> res = <span class="c-key">await</span> fetch(<span class="c-str">'https://api.recipe-api.io/v1/recipes/42'</span>, {
+  headers: { <span class="c-str">'Authorization'</span>: <span class="c-str">`Bearer <span class="c-spice">${apiKey}</span>`</span> }
+});
+
+<span class="c-key">const</span> { recipe } = <span class="c-key">await</span> res.json();
+<span class="c-grey">// { id: 42, title: "Lemon Herb Risotto",</span>
+<span class="c-grey">//   prep_time: 15, cook_time: 30, servings: 4,</span>
+<span class="c-grey">//   calories: 420, ingredients: [...] }</span></div>
+    </div>
+  </div>
+
+  <!-- FEATURES -->
+  <section class="features" id="features">
+    <div class="features-inner">
+      <div class="features-head">
+        <p class="section-label">Why recipe-api</p>
+        <h2>Everything a chef<br/><em>or developer</em> needs</h2>
+      </div>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <span class="feature-icon">🍳</span>
+          <h3>10,000+ Recipes</h3>
+          <p>A curated library spanning cuisines from around the world, updated weekly with seasonal favourites.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🥗</span>
+          <h3>Nutrition Data</h3>
+          <p>Full macros, micronutrients, allergen flags, and dietary tags — per serving or per 100 g.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">⚡</span>
+          <h3>Blazing Fast</h3>
+          <p>Globally distributed edge nodes keep median response times under 40 ms, anywhere on the planet.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🔍</span>
+          <h3>Smart Search</h3>
+          <p>Filter by ingredient, cuisine, prep time, dietary restriction, or calorie range with a single query.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🔑</span>
+          <h3>Simple Auth</h3>
+          <p>Standard Bearer token flow. Free tier includes 500 requests/day — no credit card required to start.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">📦</span>
+          <h3>SDKs Included</h3>
+          <p>Official SDKs for JavaScript, Python, and Go, with typed responses and auto-pagination baked in.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ENDPOINTS -->
+  <section class="endpoints" id="endpoints">
+    <p class="section-label" style="text-align:center">REST API</p>
+    <h2>Core Endpoints</h2>
+    <div class="endpoint-list">
+      <div class="endpoint-row">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/v1/recipes</span>
+        <span class="endpoint-desc">List & search recipes with filters</span>
+      </div>
+      <div class="endpoint-row">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/v1/recipes/:id</span>
+        <span class="endpoint-desc">Full recipe with steps & nutrition</span>
+      </div>
+      <div class="endpoint-row">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/v1/ingredients/:id</span>
+        <span class="endpoint-desc">Ingredient details and substitutes</span>
+      </div>
+      <div class="endpoint-row">
+        <span class="method post">POST</span>
+        <span class="endpoint-path">/v1/collections</span>
+        <span class="endpoint-desc">Create a saved recipe collection</span>
+      </div>
+      <div class="endpoint-row">
+        <span class="method get">GET</span>
+        <span class="endpoint-path">/v1/cuisines</span>
+        <span class="endpoint-desc">Browse all available cuisine types</span>
+      </div>
+      <div class="endpoint-row">
+        <span class="method del">DEL</span>
+        <span class="endpoint-path">/v1/collections/:id</span>
+        <span class="endpoint-desc">Remove a saved collection</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-logo">recipe<span>-api</span></div>
+    <p>Built with care · © 2026 recipe-api</p>
+  </footer>
+
+</body>
+</html>
